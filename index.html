@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat Bot AI 🤖 | VerseXploit</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:#0a0f1a;
+      --card:#101628;
+      --muted:#9aa4c7;
+      --text:#e8ecff;
+      --primary:#9b5cff;
+      --secondary:#00d4ff;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:Poppins, sans-serif;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background: radial-gradient(circle at 20% 20%, rgba(155,92,255,.2), transparent 30%),
+                  radial-gradient(circle at 80% 10%, rgba(0,212,255,.2), transparent 25%),
+                  radial-gradient(circle at 50% 90%, rgba(109,214,255,.15), transparent 30%),
+                  var(--bg);
+      padding:20px;
+      color:var(--text);
+    }
+
+    .card{
+      background:rgba(255,255,255,.05);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:18px;
+      padding:22px 20px;
+      width:100%;
+      max-width:380px;
+      text-align:center;
+      box-shadow:0 0 20px rgba(155,92,255,.3);
+      animation:fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);} }
+
+    .logo{
+      width:70px;
+      height:70px;
+      margin:0 auto 14px;
+      border-radius:50%;
+      object-fit:cover;
+      box-shadow:0 0 16px var(--primary),0 0 30px rgba(0,212,255,.4);
+    }
+
+    .title{
+      font-size:22px;
+      font-family:Orbitron, sans-serif;
+      font-weight:800;
+      color:var(--primary);
+      margin-bottom:14px;
+      text-shadow:0 0 10px rgba(155,92,255,.7);
+    }
+
+    .chat-box {
+      width:100%;
+      height:400px;
+      background:rgba(255,255,255,.03);
+      border-radius:12px;
+      overflow-y:auto;
+      padding:12px;
+      margin-bottom:10px;
+      border:1px solid rgba(255,255,255,.05);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .message {
+      margin:8px 0;
+      padding:10px 14px;
+      border-radius:10px;
+      max-width:80%;
+      word-wrap:break-word;
+      font-size:14px;
+    }
+
+    .user {
+      background:linear-gradient(90deg,var(--primary),#8b3bff);
+      margin-left:auto;
+      color:white;
+    }
+
+    .bot {
+      background:#1a1f33;
+      margin-right:auto;
+      color:var(--text);
+    }
+
+    .typing {
+      font-style:italic;
+      opacity:0.9;
+    }
+
+    .input-area {
+      display:flex;
+      width:100%;
+      gap:8px;
+    }
+
+    .input-area input {
+      flex:1;
+      padding:10px;
+      border-radius:10px;
+      border:none;
+      outline:none;
+      background:rgba(255,255,255,.04);
+      color:white;
+    }
+
+    .input-area button {
+      background:linear-gradient(90deg,var(--primary),var(--secondary));
+      border:none;
+      border-radius:10px;
+      padding:10px 14px;
+      color:white;
+      cursor:pointer;
+      transition:all 0.3s ease;
+    }
+
+    .input-area button:hover {
+      opacity:0.8;
+      transform:scale(0.97);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card" id="chatPage">
+    <img src="https://files.catbox.moe/l1pzyx.jpg" class="logo" alt="Logo">
+    <div class="title">Chat Bot AI 🤖</div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="input-area">
+      <input type="text" id="userInput" placeholder="Ketik pesanmu...">
+      <button id="sendBtn">Kirim</button>
+    </div>
+  </div>
+
+  <script>
+    const sendBtn = document.getElementById('sendBtn');
+    const chatBox = document.getElementById('chatBox');
+    const userInput = document.getElementById('userInput');
+
+    // --- KONFIGURASI GEMINI API ---
+    const API_KEY = "AIzaSyACGdgh8BuI7rH3sO2e1wdWf9w8WdL07Wo"; // ganti pakai key kamu
+    const MODEL_NAME = "gemini-1.5-flash-latest";
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+
+    async function sendMessage() {
+      const userMsg = userInput.value.trim();
+      if (!userMsg) return;
+
+      appendMessage(userMsg, "user");
+      userInput.value = "";
+
+      const typingNode = appendMessage("Sedang mengetik...", "bot", { typing: true });
+
+      try {
+        const body = {
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: userMsg }]
+            }
+          ]
+        };
+
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+          chatBox.removeChild(typingNode);
+          appendMessage("❌ Error HTTP: " + res.status, "bot");
+          return;
+        }
+
+        const data = await res.json();
+        chatBox.removeChild(typingNode);
+
+        let botReply = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join(" ") || "⚠️ Tidak ada jawaban dari AI.";
+        appendMessage(botReply, "bot");
+      } catch (err) {
+        if (chatBox.contains(typingNode)) chatBox.removeChild(typingNode);
+        appendMessage("❌ Gagal menghubungi server.", "bot");
+        console.error(err);
+      }
+    }
+
+    function appendMessage(text, sender, opts = {}) {
+      const msg = document.createElement("div");
+      msg.className = `message ${sender}`;
+      msg.textContent = text;
+      if (opts.typing) msg.classList.add("typing");
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return msg;
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+
+    appendMessage("Halo! Aku asisten AI. Ketik pesanmu di bawah ini 👇", "bot");
+  </script>
+
+</body>
+</html>
